@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Survivors</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #1a1a2e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+        }
+        canvas {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        #ui {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        #ui > * {
+            pointer-events: auto;
+        }
+        .menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 3px solid #ffd700;
+            padding: 30px;
+            text-align: center;
+            color: #fff;
+        }
+        .menu h1 {
+            color: #ffd700;
+            font-size: 32px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px #ff4444;
+        }
+        .menu-btn {
+            display: block;
+            width: 200px;
+            margin: 10px auto;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+            background: #333;
+            color: #fff;
+            border: 2px solid #ffd700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .menu-btn:hover {
+            background: #ffd700;
+            color: #000;
+        }
+        .class-select {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .class-card {
+            background: #222;
+            border: 2px solid #666;
+            padding: 15px;
+            width: 150px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .class-card:hover {
+            border-color: #ffd700;
+            transform: scale(1.05);
+        }
+        .class-card.selected {
+            border-color: #ffd700;
+            background: #333;
+        }
+        .class-card h3 {
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+        .class-card p {
+            font-size: 12px;
+            color: #aaa;
+        }
+        .stat {
+            font-size: 11px;
+            color: #88ff88;
+        }
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #fff;
+            font-size: 14px;
+        }
+        .bar-container {
+            width: 200px;
+            height: 20px;
+            background: #333;
+            border: 2px solid #fff;
+            margin: 5px 0;
+        }
+        .bar {
+            height: 100%;
+            transition: width 0.3s;
+        }
+        .hp-bar { background: linear-gradient(to bottom, #ff4444, #cc0000); }
+        .xp-bar { background: linear-gradient(to bottom, #44ff44, #00cc00); }
+        #levelUp {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            border: 3px solid #ffd700;
+            padding: 20px;
+            display: none;
+        }
+        #levelUp h2 {
+            color: #ffd700;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .upgrade-options {
+            display: flex;
+            gap: 15px;
+        }
+        .upgrade-card {
+            background: #222;
+            border: 2px solid #666;
+            padding: 15px;
+            width: 140px;
+            cursor: pointer;
+            text-align: center;
+            color: #fff;
+        }
+        .upgrade-card:hover {
+            border-color: #ffd700;
+            background: #333;
+        }
+        .upgrade-card h4 {
+            color: #ffd700;
+            margin-bottom: 8px;
+        }
+        .upgrade-card p {
+            font-size: 11px;
+            color: #aaa;
+        }
+        #gameOver {
+            display: none;
+        }
+        #gameOver h2 {
+            color: #ff4444;
+            font-size: 28px;
+        }
+        #stats {
+            margin: 15px 0;
+            color: #aaa;
+        }
+        #druidForms {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            gap: 10px;
+        }
+        .form-btn {
+            padding: 8px 15px;
+            background: #333;
+            border: 2px solid #666;
+            color: #fff;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+        }
+        .form-btn:hover, .form-btn.active {
+            border-color: #ffd700;
+            background: #444;
+        }
+        .form-btn.active {
+            color: #ffd700;
+        }
+        .form-btn.cooldown {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">
+            <!-- Main Menu -->
+            <div id="mainMenu" class="menu">
+                <h1>PIXEL SURVIVORS</h1>
+                <button class="menu-btn" onclick="showClassSelect()">NEW GAME</button>
+                <button class="menu-btn" onclick="showUpgradeShop()">UPGRADES</button>
+            </div>
+
+            <!-- Class Selection -->
+            <div id="classSelect" class="menu" style="display: none;">
+                <h1>SELECT CLASS</h1>
+                <div class="class-select">
+                    <div class="class-card" onclick="selectClass('warrior')" id="card-warrior">
+                        <h3>WARRIOR</h3>
+                        <p>Heavy melee fighter with high survivability</p>
+                        <p class="stat">HP: 120 | SPD: 1.0x</p>
+                        <p class="stat">Sword Swing Attack</p>
+                    </div>
+                    <div class="class-card" onclick="selectClass('druid')" id="card-druid">
+                        <h3>DRUID</h3>
+                        <p>Shapeshifter with versatile forms</p>
+                        <p class="stat">HP: 100 | SPD: 1.1x</p>
+                        <p class="stat">Bear/Wolf/Lunar Forms</p>
+                    </div>
+                    <div class="class-card" onclick="selectClass('shaman')" id="card-shaman">
+                        <h3>SHAMAN</h3>
+                        <p>Spirit caster with high damage</p>
+                        <p class="stat">HP: 80 | SPD: 1.0x</p>
+                        <p class="stat">Spirit Bolt Attack</p>
+                    </div>
+                </div>
+                <button class="menu-btn" onclick="startGame()" style="margin-top: 20px;">START</button>
+                <button class="menu-btn" onclick="showMainMenu()">BACK</button>
+            </div>
+
+            <!-- Upgrade Shop -->
+            <div id="upgradeShop" class="menu" style="display: none;">
+                <h1>UPGRADES</h1>
+                <p style="color: #ffd700; margin-bottom: 15px;">Gold: <span id="shopGold">0</span></p>
+                <div id="shopItems"></div>
+                <button class="menu-btn" onclick="showMainMenu()" style="margin-top: 15px;">BACK</button>
+            </div>
+
+            <!-- HUD -->
+            <div id="hud" style="display: none;">
+                <div>HP</div>
+                <div class="bar-container">
+                    <div class="bar hp-bar" id="hpBar" style="width: 100%;"></div>
+                </div>
+                <div>XP</div>
+                <div class="bar-container">
+                    <div class="bar xp-bar" id="xpBar" style="width: 0%;"></div>
+                </div>
+                <div>Level: <span id="levelText">1</span></div>
+                <div>Time: <span id="timeText">0:00</span></div>
+                <div>Kills: <span id="killsText">0</span></div>
+                <div>Gold: <span id="goldText">0</span></div>
+            </div>
+
+            <!-- Druid Form Buttons -->
+            <div id="druidForms">
+                <button class="form-btn" onclick="shapeshift('human')" id="form-human">[1] Human</button>
+                <button class="form-btn" onclick="shapeshift('bear')" id="form-bear">[2] Bear</button>
+                <button class="form-btn" onclick="shapeshift('wolf')" id="form-wolf">[3] Wolf</button>
+                <button class="form-btn" onclick="shapeshift('lunar')" id="form-lunar">[4] Lunar</button>
+            </div>
+
+            <!-- Level Up -->
+            <div id="levelUp" class="menu">
+                <h2>LEVEL UP!</h2>
+                <div class="upgrade-options" id="upgradeOptions"></div>
+            </div>
+
+            <!-- Game Over -->
+            <div id="gameOver" class="menu">
+                <h2>GAME OVER</h2>
+                <div id="stats">
+                    <p>Time Survived: <span id="finalTime">0:00</span></p>
+                    <p>Enemies Killed: <span id="finalKills">0</span></p>
+                    <p>Gold Earned: <span id="finalGold">0</span></p>
+                </div>
+                <button class="menu-btn" onclick="showClassSelect()">RETRY</button>
+                <button class="menu-btn" onclick="showMainMenu()">MENU</button>
+            </div>
+
+            <!-- Pause -->
+            <div id="pauseMenu" class="menu" style="display: none;">
+                <h2>PAUSED</h2>
+                <button class="menu-btn" onclick="resumeGame()">RESUME</button>
+                <button class="menu-btn" onclick="quitToMenu()">QUIT</button>
+            </div>
+    </div>
+
+    <!-- LittleJS Engine -->
+    <script src="https://cdn.jsdelivr.net/npm/littlejsengine/dist/littlejs.min.js"></script>
+
+    <!-- Game Scripts -->
+    <script src="game.js"></script>
+</body>
+</html>
